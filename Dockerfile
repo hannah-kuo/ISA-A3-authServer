@@ -1,29 +1,19 @@
-# Use Node.js as the base image
-FROM node:14
+# Build client
+FROM node:14 AS client
+WORKDIR /app/client
+COPY client/package*.json ./
+RUN npm ci
+COPY client ./
+RUN npm run build
 
-# Set the working directory
-WORKDIR /app
+# Build server
+FROM node:14 AS server
+WORKDIR /app/server
+COPY server/package*.json ./
+RUN npm ci --also=dev
+COPY server ./
+COPY --from=client /app/client/build ./public
 
-# Copy and install server dependencies
-COPY server/package*.json ./server/
-RUN cd server && npm ci
-
-# Copy and install client dependencies
-COPY client/package*.json ./client/
-RUN cd client && npm ci
-
-# Copy server source code
-COPY server ./server
-
-# Copy client source code and build the client app
-COPY client ./client
-RUN cd client && npm run build
-
-# Move the client build folder to the server folder
-RUN mv client/build server/public
-
-# Expose the backend server port
+# Start server
 EXPOSE 5000
-
-# Start the server
-CMD ["npm", "start", "--prefix", "server"]
+CMD ["npm", "start"]
