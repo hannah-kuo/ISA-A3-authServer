@@ -1,19 +1,22 @@
-# Build client
-FROM node:14 AS client
+# Build the client
+FROM node:14 as client
 WORKDIR /app/client
 COPY client/package*.json ./
-RUN npm ci
+RUN npm install
 COPY client ./
 RUN npm run build
 
-# Build server
-FROM node:14 AS server
+# Build the server
+FROM node:14 as server
 WORKDIR /app/server
 COPY server/package*.json ./
-RUN npm ci --also=dev
+RUN npm install --also=dev
 COPY server ./
-COPY --from=client /app/client/build ./public
 
-# Start server
+# Final Image
+FROM node:14
+COPY --from=client /app/client/build /app/client/build
+COPY --from=server /app/server /app/server
+WORKDIR /app/server
 EXPOSE 5000
 CMD ["npm", "start"]
